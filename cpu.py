@@ -77,6 +77,9 @@ class Cpu:
                     data = self.sext(self._decoded.imm)
                     self._regs.execute(rd=rd, data=data, write_enable=True)
                 case "LUI":
+                    # TODO Refactor for future semester(s) if any.
+                    # Cheating for compatibility with released ALU tests
+                    # and starter code. Leave as-is for 2025 Fall.
                     rd = self._decoded.rd
                     imm = self.sext(self._decoded.imm)
                     upper = imm << 8
@@ -152,7 +155,7 @@ class Cpu:
                 case "BEQ":
                     if self._alu.zero:
                         offset = self.sext(self._decoded.imm, 8)
-                        self._pc += offset
+                        self._pc += offset # take branch
                 case "BNE":
                     if not self._alu.zero:
                         offset = self.sext(self._decoded.imm, 8)
@@ -161,13 +164,19 @@ class Cpu:
                     offset = self.sext(self._decoded.imm, 8)
                     self._pc += offset
                 case "CALL":
-                    self._sp -= 1
-                    ret_addr = self._pc
+                    self._sp -= 1  # grow stack downward
+                    # PC is incremented immediately upon fetch so already
+                    # pointing to next instruction, which is return address.
+                    ret_addr = self._pc  # explicit
                     self._d_mem.write_enable(True)
+                    # push return address...
                     self._d_mem.write(self._sp, ret_addr, from_stack=True)
                     offset = self._decoded.imm
-                    self._pc += self.sext(offset, 8)
+                    self._pc += self.sext(offset, 8)  # jump to target
                 case "RET":
+                    # Get return address from memory via SP
+                    # Increment SP
+                    # Update PC
                     ret_addr = self._d_mem.read(self._sp)
                     self._sp += 1
                     self._pc = ret_addr

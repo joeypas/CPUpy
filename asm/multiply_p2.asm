@@ -1,20 +1,31 @@
+; Multiplication by powers of two
+; Multiplies 3 by successive powers of 2
+
+; Set the constant
 LOADI R0, #3	; R0 = 3
-LOADI R7, #1	; R7 = 1 
 
-ADDI  R6, R0, #0	; R6 = 3
+; How Much we will shift by
+LOADI R1, #1	; R1 = 1
 
-SHFT  R6, R6, R7	; R6 = 6
-ADDI  R1, R6, #0	; R1 = 6
-ADDI  R2, R6, #0	; R2 = 6 
 
-SHFT  R6, R6, R7	; R6 = 12
-ADDI  R3, R6, #0	; R3 = 12
+; Here we basically shift store R0 << R1 into each register
+; and increment R1 by one inbetween each shift
+SHFT R2, R0, R1	; R2 = 3 << 1 = 6
+ADDI R1, R1, #1	; R1 = R1 + 1 = 2
 
-SHFT  R6, R6, R7	; R6 = 24
-ADDI  R4, R6, #0	; R4 = 24
+SHFT R3, R0, R1	; R3 = 3 << 2 = 12
+ADDI R1, R1, #1	; R1 = R1 + 1 = 3
 
-SHFT  R5, R4, R7	; R5 = 48  = 3 × 2⁴
-SHFT  R6, R5, R7	; R6 = 96  = 3 × 2⁵
-SHFT  R7, R6, R7	; R7 = 192 = 3 × 2⁶
+SHFT R4, R0, R1	; R4 = 3 << 3 = 24
+ADDI R1, R1, #1	; R1 = R1 + 1 = 4
+
+SHFT R5, R0, R1	; R5 = 3 << 4 = 48
+ADDI R1, R1, #1	; R1 = R1 + 1 = 5
+
+SHFT R6, R0, R1	; R6 = 3 << 5 = 96
+ADDI R1, R1, #1	; R1 = R1 + 1 = 6
+
+SHFT R7, R0, R1	; R7 = 3 << 6 = 192
+
 
 HALT
