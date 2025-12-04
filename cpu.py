@@ -4,6 +4,8 @@ A toy 16-bit Harvard architecture CPU.
 
 CS 2210 Computer Organization
 Clayton Cafiero <cbcafier@uvm.edu>
+
+STARTER CODE
 """
 
 from alu import Alu
@@ -52,9 +54,17 @@ class Cpu:
     def decoded(self):
         return self._decoded
 
+    def get_reg(self, r):
+        """
+        Public accessor (getter) for single register value.
+        Added 2025-11-15. Notify students.
+        """
+        return self._regs.execute(ra=r)[0]
+
     def tick(self):
         """
         Fetch-decode-execute
+        Implementation incomplete.
         """
         if not self._halt:
             self._fetch()
@@ -64,42 +74,40 @@ class Cpu:
             match self._decoded.mnem:
                 case "LOADI":
                     rd = self._decoded.rd
-                    data = self.sext(self._decoded.imm)  # immediate
+                    data = self.sext(self._decoded.imm)
                     self._regs.execute(rd=rd, data=data, write_enable=True)
                 case "LUI":
-                    # TODO: Refactor for future semester(s) if any.
-                    # Cheating for compatibility with released ALU tests
-                    # and starter code. Leave as-is for 2025 Fall.
                     rd = self._decoded.rd
-                    imm = self._decoded.imm & 0xFF
+                    imm = self.sext(self._decoded.imm)
                     upper = imm << 8
                     lower, _ = self._regs.execute(ra=rd)
-                    lower &= 0x00FF  # clear upper bits
+                    lower &= 0x00FF #clear upper bits
                     data = upper | lower
                     self._regs.execute(rd=rd, data=data, write_enable=True)
                 case "LOAD":
-                    base_addr, _ = self._regs.execute(ra=self._decoded.ra)
-                    offset = self.sext(self._decoded.addr)  # immediate
-                    eff_addr = base_addr + offset
-                    data = self._d_mem.read(eff_addr)
-                    self._regs.execute(
-                        rd=self._decoded.rd, data=data, write_enable=True
-                    )
+                    rd = self._decoded.rd
+                    ra = self._decoded.ra
+                    offset = self.sext(self._decoded.imm, 6)
+                    base, _ = self._regs.execute(ra=ra)
+                    addr = (base + offset) & 0xFFFF
+                    data = self._d_mem.read(addr)
+                    self._regs.execute(rd=rd, data=data, write_enable=True)
                 case "STORE":
-                    data, base_addr = self._regs.execute(
-                        ra=self._decoded.ra, rb=self._decoded.rb
-                    )
-                    offset = self.sext(self._decoded.imm)
-                    eff_addr = base_addr + offset
+                    ra = self._decoded.ra
+                    rb = self._decoded.rb
+                    offset = self.sext(self._decoded.imm, 6)
+                    src, _ = self._regs.execute(ra=ra)
+                    base, _ = self._regs.execute(ra=rb)
+                    addr = (base + offset) & 0xFFFF
                     self._d_mem.write_enable(True)
-                    self._d_mem.write(eff_addr, data)
+                    self._d_mem.write(addr, src)
                 case "ADDI":
                     self._alu.set_op("ADD")
                     rd = self._decoded.rd
                     ra = self._decoded.ra
+                    imm = self.sext(self._decoded.imm, 6)
                     op_a, _ = self._regs.execute(ra=ra)
-                    op_b = self.sext(self._decoded.imm)  # immediate
-                    result = self._alu.execute(op_a, op_b)
+                    result = self._alu.execute(op_a, imm)
                     self._regs.execute(rd=rd, data=result, write_enable=True)
                 case "ADD":
                     self._alu.set_op("ADD")
@@ -144,24 +152,21 @@ class Cpu:
                 case "BEQ":
                     if self._alu.zero:
                         offset = self.sext(self._decoded.imm, 8)
-                        self._pc += offset  # take branch
+                        self._pc += offset
                 case "BNE":
                     if not self._alu.zero:
                         offset = self.sext(self._decoded.imm, 8)
-                        self._pc += offset  # take branch
+                        self._pc += offset
                 case "B":
                     offset = self.sext(self._decoded.imm, 8)
-                    self._pc += offset  # unconditional
+                    self._pc += offset
                 case "CALL":
-                    self._sp -= 1  # grow stack downward
-                    # PC is incremented immediately upon fetch so already
-                    # pointing to next instruction, which is return address.
-                    ret_addr = self._pc  # explicit
+                    self._sp -= 1
+                    ret_addr = self._pc
                     self._d_mem.write_enable(True)
-                    # push return address...
                     self._d_mem.write(self._sp, ret_addr, from_stack=True)
                     offset = self._decoded.imm
-                    self._pc += self.sext(offset)  # jump to target
+                    self._pc += self.sext(offset, 8)
                 case "RET":
                     ret_addr = self._d_mem.read(self._sp)
                     self._sp += 1
@@ -185,7 +190,7 @@ class Cpu:
     def _fetch(self):
         raw_instruction = self._i_mem.read(self._pc)
         self._ir = raw_instruction
-        self._pc += 1  # TODO: refactor to let ALU handle this
+        self._pc += 1
 
     def load_program(self, prog):
         self._i_mem.load_program(prog)
